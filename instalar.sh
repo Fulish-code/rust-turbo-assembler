@@ -73,7 +73,11 @@ ARQ="$(uname -m)"
 
 # ---------- 1. Conseguir el programa ----------
 FUENTE=""
-AQUI="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" 2>/dev/null && pwd || echo "")"
+# Solo cuando el script se ejecuta como archivo (./instalar.sh dentro del paquete);
+# con "curl | bash" no hay archivo y siempre se descarga la versión publicada.
+AQUI=""
+SCRIPT="${BASH_SOURCE[0]:-}"
+if [ -n "$SCRIPT" ] && [ -f "$SCRIPT" ]; then AQUI="$(cd "$(dirname "$SCRIPT")" && pwd)"; fi
 if [ -n "$AQUI" ] && [ -x "$AQUI/rust-tasm" ] && [ -f "$AQUI/BIN/TASM.EXE" ]; then
     # Se está ejecutando desde un paquete ya descomprimido (instalación sin internet).
     paso "Usando los archivos de esta carpeta"
