@@ -35,6 +35,18 @@ bien()  { printf "  %s✔%s %s\n" "$VE" "$FIN" "$*"; }
 aviso() { printf "  %s!%s %s\n" "$AM" "$FIN" "$*"; }
 falla() { printf "\n%s✖ %s%s\n\n" "$RO" "$*" "$FIN"; exit 1; }
 
+# Pregunta sí/no (por defecto: sí). Funciona también con "curl | bash" porque
+# lee de la terminal (/dev/tty). Sin terminal (pruebas automáticas) responde sí.
+# RTASM_ESCRITORIO=s|n fija la respuesta sin preguntar.
+preguntar() {
+    local r="${RTASM_ESCRITORIO:-}"
+    if [ -z "$r" ] && ( : < /dev/tty ) 2>/dev/null; then
+        printf "  %s?%s %s [S/n]: " "$AZ" "$FIN" "$1" > /dev/tty
+        read -r r < /dev/tty || r=""
+    fi
+    case "$r" in [nN]*) return 1 ;; *) return 0 ;; esac
+}
+
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
@@ -190,7 +202,7 @@ command -v gtk-update-icon-cache >/dev/null 2>&1 && gtk-update-icon-cache -q "$D
 bien "Menú de aplicaciones"
 
 ESCRITORIO="$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop")"
-if [ -d "$ESCRITORIO" ]; then
+if [ -d "$ESCRITORIO" ] && preguntar "¿Crear un ícono en el Escritorio?"; then
     cp "$MENU" "$ESCRITORIO/rust-tasm.desktop"
     chmod +x "$ESCRITORIO/rust-tasm.desktop"
     command -v gio >/dev/null 2>&1 && gio set "$ESCRITORIO/rust-tasm.desktop" metadata::trusted true 2>/dev/null || true
@@ -198,4 +210,4 @@ if [ -d "$ESCRITORIO" ]; then
 fi
 
 printf "\n%s✔ ¡Listo! Rust Turbo Assembler está instalado.%s\n" "$VE" "$FIN"
-printf "  Ábrelo desde el menú de aplicaciones (busca %s\"Turbo\"%s) o con el ícono del Escritorio.\n\n" "$NE" "$FIN"
+printf "  Ábrelo desde el menú de aplicaciones (busca %s\"Turbo\"%s) o con su ícono del Escritorio.\n\n" "$NE" "$FIN"

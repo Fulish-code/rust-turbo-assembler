@@ -29,6 +29,18 @@ bien()  { printf "  %s✔%s %s\n" "$VE" "$FIN" "$*"; }
 aviso() { printf "  %s!%s %s\n" "$AM" "$FIN" "$*"; }
 falla() { printf "\n%s✖ %s%s\n\n" "$RO" "$*" "$FIN"; exit 1; }
 
+# Pregunta sí/no (por defecto: sí). Funciona también con "curl | bash" porque
+# lee de la terminal (/dev/tty). Sin terminal (pruebas automáticas) responde sí.
+# RTASM_ESCRITORIO=s|n fija la respuesta sin preguntar.
+preguntar() {
+    r="${RTASM_ESCRITORIO:-}"
+    if [ -z "$r" ] && ( : < /dev/tty ) 2>/dev/null; then
+        printf "  %s?%s %s [S/n]: " "$AZ" "$FIN" "$1" > /dev/tty
+        read -r r < /dev/tty || r=""
+    fi
+    case "$r" in [nN]*) return 1 ;; *) return 0 ;; esac
+}
+
 TMP="$(mktemp -d)"
 MNT=""
 limpiar() { if [ -n "$MNT" ]; then hdiutil detach -quiet "$MNT" 2>/dev/null || true; fi; rm -rf "$TMP"; }
@@ -48,6 +60,7 @@ hay_dosbox() {
 if [ "${1:-}" = "--quitar" ] || [ "${1:-}" = "--desinstalar" ]; then
     paso "Desinstalando $APPNAME"
     rm -rf "$APPS/$APPNAME.app"
+    rm -f "$HOME/Desktop/$APPNAME"
     bien "Listo. DOSBox Staging, tus archivos .asm y tu configuración no se tocaron."
     exit 0
 fi
@@ -101,6 +114,15 @@ else
     fi
 fi
 
+# ---------- 3. Ícono en el Escritorio ----------
+paso "Accesos directos"
+bien "Launchpad y carpeta Aplicaciones (con su ícono)"
+if [ -d "$HOME/Desktop" ] && preguntar "¿Crear un ícono en el Escritorio?"; then
+    rm -f "$HOME/Desktop/$APPNAME"
+    ln -s "$APPS/$APPNAME.app" "$HOME/Desktop/$APPNAME"
+    bien "Ícono en el Escritorio"
+fi
+
 printf "\n%s✔ ¡Listo! %s está instalado.%s\n" "$VE" "$APPNAME" "$FIN"
-printf "  Ábrelo desde Launchpad o desde la carpeta Aplicaciones de tu usuario (busca %s\"Turbo\"%s).\n\n" "$NE" "$FIN"
+printf "  Ábrelo desde Launchpad, la carpeta Aplicaciones o el ícono del Escritorio (busca %s\"Turbo\"%s).\n\n" "$NE" "$FIN"
 if [ -z "${RTASM_ZIP_LOCAL:-}" ]; then open "$APPS/$APPNAME.app" 2>/dev/null || true; fi

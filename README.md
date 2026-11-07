@@ -2,11 +2,11 @@
 
 <p align="center"><img src="assets/icon-256.png" alt="Ícono de Rust Turbo Assembler" width="128"></p>
 
-**Windows 10/11:** [⬇ Descargar el instalador (rust-tasm-windows-setup.exe)](https://github.com/Fulish-code/rust-turbo-assembler/releases/latest/download/rust-tasm-windows-setup.exe)
-— ábrelo y sigue los pasos; no pide permisos de administrador.
-Linux y macOS: ver [Instalar](#instalar-linux) más abajo.
+**Instalar:** [Linux](#instalar-linux) · [macOS](#instalar-macos-intel-y-apple-silicon) ·
+[Windows](#instalar-windows-1011) — en Linux y macOS es pegar una línea en la Terminal;
+en Windows, [⬇ descargar el instalador](https://github.com/Fulish-code/rust-turbo-assembler/releases/latest/download/rust-tasm-windows-setup.exe).
 
-Port multiplataforma (Windows, Linux y macOS) del **GUI Turbo Assembler** de Lakhya Jyoti Nath
+Port multiplataforma (Linux, macOS y Windows) del **GUI Turbo Assembler** de Lakhya Jyoti Nath
 ([ljnath/GUI-Turbo-Assembler](https://github.com/ljnath/GUI-Turbo-Assembler)),
 reescrito desde cero en **Rust** con [egui](https://github.com/emilk/egui).
 
@@ -14,19 +14,6 @@ Igual que el original, ejecuta las herramientas reales de Borland de 16 bits
 (**TASM 4.1, TLINK 7.1 y Turbo Debugger 5.0**) dentro de **DOSBox**. Así,
 el ensamblado, el enlazado y la depuración con TD funcionan exactamente como en
 Windows.
-
-## Instalar (Windows 10/11)
-
-1. Descarga [**rust-tasm-windows-setup.exe**](https://github.com/Fulish-code/rust-turbo-assembler/releases/latest/download/rust-tasm-windows-setup.exe).
-2. Ábrelo. Si Windows muestra "Windows protegió su PC", haz clic en
-   **Más información › Ejecutar de todas formas** (el instalador no está firmado).
-3. Sigue los pasos. El instalador te pregunta si quieres un **acceso directo en
-   el Escritorio**; siempre crea uno en el menú Inicio.
-
-Incluye Turbo Assembler, Turbo Linker, Turbo Debugger, los manuales y
-**DOSBox Staging**: no hay que instalar nada más. Se instala en tu carpeta de
-usuario sin pedir contraseña de administrador. Para desinstalar: Configuración ›
-Aplicaciones › Rust Turbo Assembler › Desinstalar.
 
 ## Instalar (Linux)
 
@@ -41,7 +28,8 @@ Eso es todo. El instalador:
 - descarga el programa ya compilado (funciona en Ubuntu 20.04+, Debian 11+, Mint, Fedora, Arch…);
 - incluye Turbo Assembler, Turbo Linker, Turbo Debugger y los manuales;
 - instala **DOSBox Staging** si no lo tienes (sin pedir contraseña);
-- crea el ícono en el menú de aplicaciones y en el Escritorio.
+- crea el acceso en el menú de aplicaciones, con su ícono, y te pregunta si
+  quieres también un **ícono en el Escritorio**.
 
 No necesita permisos de administrador. Para desinstalar:
 
@@ -61,9 +49,33 @@ Abre la app **Terminal** (Aplicaciones › Utilidades › Terminal), pega esta l
 curl -fsSL https://raw.githubusercontent.com/Fulish-code/rust-turbo-assembler/main/instalar-macos.sh | bash
 ```
 
-Instala la app en tu carpeta Aplicaciones (sin pedir contraseña), descarga
-**DOSBox Staging** si no lo tienes y abre el programa al terminar. Después
-búscalo en Launchpad como "Rust Turbo Assembler". Requiere macOS 11 o superior.
+El instalador:
+
+- instala la app, con su ícono, en tu carpeta Aplicaciones (sin pedir contraseña);
+- incluye Turbo Assembler, Turbo Linker, Turbo Debugger y los manuales;
+- descarga **DOSBox Staging** si no lo tienes;
+- te pregunta si quieres un **ícono en el Escritorio** y abre el programa al terminar.
+
+Después búscalo en Launchpad como "Rust Turbo Assembler". Requiere macOS 11 o superior.
+Para desinstalar:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Fulish-code/rust-turbo-assembler/main/instalar-macos.sh | bash -s -- --quitar
+```
+
+
+## Instalar (Windows 10/11)
+
+1. Descarga [**rust-tasm-windows-setup.exe**](https://github.com/Fulish-code/rust-turbo-assembler/releases/latest/download/rust-tasm-windows-setup.exe).
+2. Ábrelo. Si Windows muestra "Windows protegió su PC", haz clic en
+   **Más información › Ejecutar de todas formas** (el instalador no está firmado).
+3. Sigue los pasos. El instalador te pregunta si quieres un **acceso directo en
+   el Escritorio**; siempre crea uno en el menú Inicio.
+
+Incluye Turbo Assembler, Turbo Linker, Turbo Debugger, los manuales y
+**DOSBox Staging**: no hay que instalar nada más. Se instala en tu carpeta de
+usuario sin pedir contraseña de administrador. Para desinstalar: Configuración ›
+Aplicaciones › Rust Turbo Assembler › Desinstalar.
 
 ## Compilar desde el código
 
