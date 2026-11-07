@@ -1,0 +1,130 @@
+name: Paquetes
+
+# Compila Windows, Linux y macOS, prueba cada instalador y, al subir una
+# etiqueta vX.Y.Z, adjunta los paquetes a esa versión en GitHub Releases.
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Inno Setup
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe")) {
+            choco install innosetup -y --no-progress
+          }
+
+      - name: Compilar y crear el instalador
+        shell: pwsh
+        run: ./empaquetar-windows.ps1
+
+      - name: Probar el instalador (silencioso, con acceso directo en el escritorio)
+        shell: pwsh
+        run: |
+          Start-Process dist\rust-tasm-windows-setup.exe -Wait -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/CURRENTUSER','/TASKS=desktopicon'
+          $App = "$env:LOCALAPPDATA\Programs\Rust Turbo Assembler"
+          foreach ($f in 'rust-tasm.exe','BIN\TASM.EXE','dosbox\dosbox.exe','docs\Manual-TASM(completo).pdf','examples\HOLA.ASM') {
+            if (-not (Test-Path "$App\$f")) { throw "Falta $f" }
+          }
+          if (-not (Test-Path "$([Environment]::GetFolderPath('Desktop'))\Rust Turbo Assembler.lnk")) { throw 'Falta el acceso directo' }
+          "$App\dosbox" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+
+      - name: Pruebas con DOSBox real (TASM, TLINK, ejecución y TD)
+        run: cargo test --release -- --include-ignored --test-threads=1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rust-tasm-windows
+          path: |
+            dist/rust-tasm-windows-setup.exe
+            dist/rust-tasm-windows-setup.exe.sha256
+
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.1
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-zigbuild
+
+      - name: Compilar y empaquetar (glibc 2.31)
+        run: ./empaquetar.sh
+
+      - name: Probar el instalador sin internet (desde el paquete)
+        run: |
+          mkdir -p /tmp/prueba && tar -xzf dist/rust-tasm-linux-x86_64.tar.gz -C /tmp/prueba
+          bash /tmp/prueba/rust-tasm/instalar.sh
+          test -x ~/.local/share/rust-tasm/rust-tasm
+          test -f ~/.local/share/icons/hicolor/256x256/apps/rust-tasm.png
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rust-tasm-linux
+          path: |
+            dist/rust-tasm-linux-x86_64.tar.gz
+            dist/rust-tasm-linux-x86_64.tar.gz.sha256
+
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Compilar y empaquetar (.app universal)
+        run: ./empaquetar-macos.sh
+
+      - name: Probar el instalador (incluye descarga de DOSBox Staging)
+        run: RTASM_ZIP_LOCAL="$PWD/dist/rust-tasm-macos.zip" RTASM_FORZAR_DOSBOX=1 bash ./instalar-macos.sh
+
+      - name: Pruebas con DOSBox real (TASM, TLINK, ejecución y TD)
+        run: cargo test -- --include-ignored --test-threads=1
+
+      - name: Captura de la interfaz instalada
+        run: |
+          mkdir -p ~/Library/Application\ Support/rust-tasm
+          echo '{"language":"ES"}' > ~/Library/Application\ Support/rust-tasm/config.json
+          RTASM_SHOT="$PWD/dist/captura-macos.png" RTASM_SHOT_FRAMES=60 \
+            "$HOME/Applications/Rust Turbo Assembler.app/Contents/MacOS/rust-tasm" \
+            "$HOME/Applications/Rust Turbo Assembler.app/Contents/Resources/examples/HOLA.ASM" &
+          PID=$!; sleep 40; kill $PID 2>/dev/null || true
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rust-tasm-macos
+          path: |
+            dist/rust-tasm-macos.zip
+            dist/rust-tasm-macos.zip.sha256
+            dist/captura-macos.png
+
+  publicar:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [windows, linux, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: paquetes
+          merge-multiple: true
+      - name: Adjuntar a la versión
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          rm -f paquetes/captura-macos.png
+          gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1 || gh release create "$GITHUB_REF_NAME" --title "Rust Turbo Assembler ${GITHUB_REF_NAME#v}" --notes ""
+          gh release upload "$GITHUB_REF_NAME" paquetes/* --clobber

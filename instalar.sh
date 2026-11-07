@@ -24,7 +24,8 @@ DATOS="${XDG_DATA_HOME:-$HOME/.local/share}"
 APP="$DATOS/rust-tasm"
 ENLACE="$HOME/.local/bin/rust-tasm"
 MENU="$DATOS/applications/rust-tasm.desktop"
-ICONO="$DATOS/icons/hicolor/scalable/apps/rust-tasm.svg"
+ICONO="$DATOS/icons/hicolor/256x256/apps/rust-tasm.png"
+ICONO_VIEJO="$DATOS/icons/hicolor/scalable/apps/rust-tasm.svg"   # versiones anteriores a la 1.2
 
 # ---------- mensajes bonitos ----------
 if [ -t 1 ]; then AZ=$'\e[1;34m'; VE=$'\e[1;32m'; AM=$'\e[1;33m'; RO=$'\e[1;31m'; NE=$'\e[1m'; FIN=$'\e[0m'
@@ -59,7 +60,7 @@ hay_dosbox() {
 if [ "${1:-}" = "--quitar" ] || [ "${1:-}" = "--desinstalar" ]; then
     paso "Desinstalando Rust Turbo Assembler"
     ESCRITORIO="$(xdg-user-dir DESKTOP 2>/dev/null || echo "$HOME/Desktop")"
-    rm -rf "$APP" "$ENLACE" "$MENU" "$ICONO" "$ESCRITORIO/rust-tasm.desktop"
+    rm -rf "$APP" "$ENLACE" "$MENU" "$ICONO" "$ICONO_VIEJO" "$ESCRITORIO/rust-tasm.desktop"
     command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$DATOS/applications" 2>/dev/null || true
     bien "Listo. Tus archivos .asm y tu configuración (~/.config/rust-tasm) no se tocaron."
     exit 0
@@ -119,7 +120,8 @@ rm -rf "$APP/BIN" "$APP/docs" "$APP/locales" "$APP/examples"
 install -m755 "$FUENTE/rust-tasm" "$APP/rust-tasm"
 cp -r "$FUENTE/BIN" "$FUENTE/docs" "$FUENTE/locales" "$FUENTE/examples" "$APP/"
 mkdir -p "$(dirname "$ICONO")"
-cp "$FUENTE/assets/rust-tasm.svg" "$ICONO"
+cp "$FUENTE/assets/icon-256.png" "$ICONO"
+rm -f "$ICONO_VIEJO"
 bien "Programa, Turbo Assembler, Turbo Linker, Turbo Debugger y manuales"
 
 # ---------- 3. DOSBox ----------

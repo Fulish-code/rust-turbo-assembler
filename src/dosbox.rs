@@ -92,11 +92,23 @@ fn extra_locations() -> Vec<PathBuf> {
     v
 }
 
+/// En Windows DOSBox es un programa de consola: sin esto, cada ensamblado
+/// abriría una ventana negra además de la de DOSBox.
+fn no_console(cmd: &mut Command) -> &mut Command {
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        cmd.creation_flags(CREATE_NO_WINDOW);
+    }
+    cmd
+}
+
 fn probe(exe: &Path) -> Option<DosBox> {
     if !exe.is_file() {
         return None;
     }
-    let out = Command::new(exe)
+    let out = no_console(&mut Command::new(exe))
         .arg("--version")
         .stdin(Stdio::null())
         .env("SDL_VIDEODRIVER", "dummy")
@@ -240,7 +252,27 @@ fn mount_path(tmp: &Path, alias: &str, real: &Path) -> PathBuf {
         }
     }
     let _ = (tmp, alias);
-    real.to_path_buf()
+    dos_safe(real)
+}
+
+/// En Windows DOSBox no monta rutas con acentos o eñes (p. ej. `C:\Users\Martín`):
+/// se usa el nombre corto 8.3 de la carpeta, que siempre es ASCII.
+fn dos_safe(p: &Path) -> PathBuf {
+    #[cfg(windows)]
+    if !p.as_os_str().to_string_lossy().is_ascii() {
+        use std::os::windows::ffi::{OsStrExt, OsStringExt};
+        #[link(name = "kernel32")]
+        unsafe extern "system" {
+            fn GetShortPathNameW(long: *const u16, short: *mut u16, len: u32) -> u32;
+        }
+        let wide: Vec<u16> = p.as_os_str().encode_wide().chain(Some(0)).collect();
+        let mut buf = vec![0u16; 1024];
+        let n = unsafe { GetShortPathNameW(wide.as_ptr(), buf.as_mut_ptr(), buf.len() as u32) } as usize;
+        if n > 0 && n < buf.len() {
+            return PathBuf::from(std::ffi::OsString::from_wide(&buf[..n]));
+        }
+    }
+    p.to_path_buf()
 }
 
 impl DosBox {
@@ -281,8 +313,9 @@ impl DosBox {
         let n = JOB_COUNTER.fetch_add(1, Ordering::SeqCst);
         let tmp = std::env::temp_dir().join(format!("rust-tasm-{}-{n}", std::process::id()));
         let _ = std::fs::remove_dir_all(&tmp);
+        std::fs::create_dir_all(tmp.join("io"))?;
+        let tmp = dos_safe(&tmp);
         let io_dir = tmp.join("io");
-        std::fs::create_dir_all(&io_dir)?;
 
         let mut bat = String::from("@ECHO OFF\r\n");
         for line in &job.batch {
@@ -297,7 +330,8 @@ impl DosBox {
         std::fs::write(&conf_path, self.conf(job, &c, &d, &io_dir))?;
 
         let mut cmd = Command::new(&self.exe);
-        cmd.args(self.base_args())
+        no_console(&mut cmd)
+            .args(self.base_args())
             .arg("-conf")
             .arg(&conf_path)
             .arg("-exit")

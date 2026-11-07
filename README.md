@@ -1,6 +1,12 @@
 # Rust Turbo Assembler
 
-Port a Linux (y multiplataforma) del **GUI Turbo Assembler** de Lakhya Jyoti Nath
+<p align="center"><img src="assets/icon-256.png" alt="Ícono de Rust Turbo Assembler" width="128"></p>
+
+**Windows 10/11:** [⬇ Descargar el instalador (rust-tasm-windows-setup.exe)](https://github.com/Fulish-code/rust-turbo-assembler/releases/latest/download/rust-tasm-windows-setup.exe)
+— ábrelo y sigue los pasos; no pide permisos de administrador.
+Linux y macOS: ver [Instalar](#instalar-linux) más abajo.
+
+Port multiplataforma (Windows, Linux y macOS) del **GUI Turbo Assembler** de Lakhya Jyoti Nath
 ([ljnath/GUI-Turbo-Assembler](https://github.com/ljnath/GUI-Turbo-Assembler)),
 reescrito desde cero en **Rust** con [egui](https://github.com/emilk/egui).
 
@@ -8,6 +14,19 @@ Igual que el original, ejecuta las herramientas reales de Borland de 16 bits
 (**TASM 4.1, TLINK 7.1 y Turbo Debugger 5.0**) dentro de **DOSBox**. Así,
 el ensamblado, el enlazado y la depuración con TD funcionan exactamente como en
 Windows.
+
+## Instalar (Windows 10/11)
+
+1. Descarga [**rust-tasm-windows-setup.exe**](https://github.com/Fulish-code/rust-turbo-assembler/releases/latest/download/rust-tasm-windows-setup.exe).
+2. Ábrelo. Si Windows muestra "Windows protegió su PC", haz clic en
+   **Más información › Ejecutar de todas formas** (el instalador no está firmado).
+3. Sigue los pasos. El instalador te pregunta si quieres un **acceso directo en
+   el Escritorio**; siempre crea uno en el menú Inicio.
+
+Incluye Turbo Assembler, Turbo Linker, Turbo Debugger, los manuales y
+**DOSBox Staging**: no hay que instalar nada más. Se instala en tu carpeta de
+usuario sin pedir contraseña de administrador. Para desinstalar: Configuración ›
+Aplicaciones › Rust Turbo Assembler › Desinstalar.
 
 ## Instalar (Linux)
 
@@ -51,12 +70,16 @@ búscalo en Launchpad como "Rust Turbo Assembler". Requiere macOS 11 o superior.
 ```bash
 cargo run --release      # Rust 1.85+
 ./empaquetar.sh          # crea dist/rust-tasm-linux-x86_64.tar.gz (requiere zig + cargo-zigbuild)
+./empaquetar-macos.sh    # crea dist/rust-tasm-macos.zip (en macOS)
+./empaquetar-windows.ps1 # crea dist/rust-tasm-windows-setup.exe (en Windows, requiere Inno Setup 6)
 cargo test -- --include-ignored   # incluye pruebas con DOSBox real
 ```
 
 El programa busca `BIN/` (herramientas Turbo) y `docs/` (manuales) junto al
 ejecutable o en una carpeta superior, y DOSBox en el PATH o en `dosbox-staging/`
-junto al ejecutable.
+(Linux) o `dosbox\` (Windows) junto al ejecutable. Al subir una etiqueta `vX.Y.Z`,
+GitHub Actions compila los tres sistemas, prueba los instaladores y adjunta los
+paquetes a la versión.
 
 ## Funciones (las mismas del original)
 
@@ -103,6 +126,8 @@ src/
   i18n.rs        idiomas (.lang del original)
   theme.rs       temas Azul/Oscuro/Claro
   devshot.rs     capturas de pantalla para pruebas (RTASM_SHOT=archivo.png)
+assets/          ícono (PNG 1024/256 px, .ico de Windows)
+windows/         script de Inno Setup del instalador de Windows
 BIN/             TASM, TLINK, TD (+ RTM, DPMI16BI, TDHELP) de Borland
 docs/            manual de TASM en PDF
 locales/         idiomas
@@ -117,5 +142,9 @@ Assembler original.
 
 ---
 
-Desarrollado por **Fulish-code**. Herramientas utilizadas: Rust, egui, DOSBox Staging y
-[Claude](https://claude.com) (Anthropic) como asistente de programación.
+Desarrollado por **Fulish-code**. Herramientas utilizadas: Rust, egui, DOSBox Staging e Inno Setup.
+
+**Uso de inteligencia artificial:** este proyecto se desarrolló con ayuda de
+[Claude](https://claude.com) (Anthropic) como asistente de programación: escritura y
+revisión de código, scripts de instalación (Windows, Linux y macOS) y documentación.
+Las decisiones de diseño, las pruebas y la publicación son del autor.
