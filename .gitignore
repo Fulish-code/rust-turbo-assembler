@@ -1,0 +1,12 @@
+/target
+/rust-tasm
+*.OBJ
+*.obj
+*.MAP
+*.map
+*.LST
+*.lst
+*.TR
+*.TRW
+/dist
+/RETOMAR.md
