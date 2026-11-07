@@ -64,7 +64,13 @@ fn extra_locations() -> Vec<PathBuf> {
             }
         }
     }
-    // macOS
+    // macOS (también en ~/Applications, donde instala el instalador sin permisos de admin)
+    if let Some(home) = dirs::home_dir() {
+        v.push(home.join("Applications/DOSBox Staging.app/Contents/MacOS/dosbox"));
+        v.push(home.join("Applications/dosbox-staging.app/Contents/MacOS/dosbox"));
+    }
+    v.push("/opt/homebrew/bin/dosbox".into());
+    v.push("/usr/local/bin/dosbox".into());
     v.push("/Applications/DOSBox Staging.app/Contents/MacOS/dosbox".into());
     v.push("/Applications/dosbox-staging.app/Contents/MacOS/dosbox".into());
     v.push("/Applications/dosbox-x.app/Contents/MacOS/dosbox-x".into());

@@ -34,6 +34,18 @@ curl -fsSL https://raw.githubusercontent.com/Fulish-code/rust-turbo-assembler/ma
 [Releases](https://github.com/Fulish-code/rust-turbo-assembler/releases),
 descomprímelo y ejecuta `./instalar.sh` dentro de la carpeta.
 
+## Instalar (macOS, Intel y Apple Silicon)
+
+Abre la app **Terminal** (Aplicaciones › Utilidades › Terminal), pega esta línea y presiona Enter:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Fulish-code/rust-turbo-assembler/main/instalar-macos.sh | bash
+```
+
+Instala la app en tu carpeta Aplicaciones (sin pedir contraseña), descarga
+**DOSBox Staging** si no lo tienes y abre el programa al terminar. Después
+búscalo en Launchpad como "Rust Turbo Assembler". Requiere macOS 11 o superior.
+
 ## Compilar desde el código
 
 ```bash

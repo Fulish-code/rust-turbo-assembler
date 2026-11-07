@@ -119,51 +119,46 @@ pub fn find_bin_dir(custom: &str) -> Option<PathBuf> {
             return Some(p);
         }
     }
-    let mut cands = Vec::new();
-    if let Ok(me) = std::env::current_exe() {
-        let me = me.canonicalize().unwrap_or(me);
-        let mut dir = me.parent().map(Path::to_path_buf);
-        // Sube hasta 4 niveles (sirve también desde target/release).
-        for _ in 0..5 {
-            if let Some(d) = dir {
-                cands.push(d.join("BIN"));
-                cands.push(d.join("bin"));
-                dir = d.parent().map(Path::to_path_buf);
-            }
-        }
-    }
-    if let Ok(cwd) = std::env::current_dir() {
-        cands.push(cwd.join("BIN"));
-    }
-    if let Some(d) = dirs::data_dir() {
-        cands.push(d.join("rust-tasm").join("BIN"));
-    }
-    #[cfg(unix)]
-    cands.push("/usr/share/rust-tasm/BIN".into());
-    cands.into_iter().find(|d| has_tasm(d))
+    let cands: Vec<PathBuf> = resource_roots().into_iter().flat_map(|r| [r.join("BIN"), r.join("bin")]).collect();
+    cands.into_iter().find(|d| has_tasm(d)).map(|d| d.canonicalize().unwrap_or(d))
 }
 
 /// Carpeta `docs/` con los manuales de TASM (se busca igual que BIN).
 pub fn find_docs_dir() -> Option<PathBuf> {
     let ok = |d: &Path| d.join("Manual TASM").is_dir() || d.join("Manual-TASM(completo).pdf").is_file();
-    let mut cands = Vec::new();
+    let cands: Vec<PathBuf> = resource_roots().into_iter().map(|r| r.join("docs")).collect();
+    cands.into_iter().find(|d| ok(d)).map(|d| d.canonicalize().unwrap_or(d))
+}
+
+/// Carpetas candidatas para recursos (BIN, docs, locales): junto al ejecutable,
+/// sus carpetas superiores y, en macOS, `Contents/Resources` del paquete .app.
+pub fn resource_roots() -> Vec<PathBuf> {
+    let mut v = Vec::new();
     if let Ok(me) = std::env::current_exe() {
         let me = me.canonicalize().unwrap_or(me);
-        let mut dir = me.parent().map(Path::to_path_buf);
-        for _ in 0..5 {
-            if let Some(d) = dir {
-                cands.push(d.join("docs"));
-                dir = d.parent().map(Path::to_path_buf);
+        if let Some(exe_dir) = me.parent() {
+            v.push(exe_dir.join("../Resources"));
+            let mut dir = Some(exe_dir.to_path_buf());
+            for _ in 0..5 {
+                if let Some(d) = dir {
+                    v.push(d.clone());
+                    dir = d.parent().map(Path::to_path_buf);
+                }
             }
         }
     }
     if let Ok(cwd) = std::env::current_dir() {
-        cands.push(cwd.join("docs"));
+        v.push(cwd);
     }
     if let Some(d) = dirs::data_dir() {
-        cands.push(d.join("rust-tasm").join("docs"));
+        v.push(d.join("rust-tasm"));
     }
     #[cfg(unix)]
-    cands.push("/usr/share/rust-tasm/docs".into());
-    cands.into_iter().find(|d| ok(d))
+    v.push("/usr/share/rust-tasm".into());
+    v
+}
+
+/// Carpeta `locales/` en disco (opcional; si no existe se usan los idiomas incrustados).
+pub fn find_locales_dir() -> Option<PathBuf> {
+    resource_roots().into_iter().map(|r| r.join("locales")).find(|d| d.is_dir())
 }

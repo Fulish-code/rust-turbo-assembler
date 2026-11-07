@@ -227,7 +227,7 @@ fn validate_filename(p: &Path, t: &dyn Fn(&str) -> String) -> Result<(), String>
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         let settings = Settings::load();
-        let locales_dir = std::env::current_exe().ok().and_then(|p| p.parent().map(|d| d.join("locales")));
+        let locales_dir = config::find_locales_dir();
         let i18n = Arc::new(I18n::load(locales_dir.as_deref(), &settings.language));
         cc.egui_ctx.options_mut(|o| o.zoom_with_keyboard = false);
         theme::apply(&cc.egui_ctx, settings.ide_theme);
@@ -2357,7 +2357,7 @@ impl App {
             p.terminal_history = self.s.settings.terminal_history.clone();
             self.s.settings = p.clone();
             if lang_changed {
-                let dir = std::env::current_exe().ok().and_then(|x| x.parent().map(|d| d.join("locales")));
+                let dir = config::find_locales_dir();
                 self.s.i18n = Arc::new(I18n::load(dir.as_deref(), &p.language));
             }
             if dos_changed {

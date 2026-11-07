@@ -1,0 +1,41 @@
+name: macOS
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Compilar y empaquetar (.app universal)
+        run: ./empaquetar-macos.sh
+
+      - name: Probar el instalador (incluye descarga de DOSBox Staging)
+        run: RTASM_ZIP_LOCAL="$PWD/dist/rust-tasm-macos.zip" RTASM_FORZAR_DOSBOX=1 bash ./instalar-macos.sh
+
+      - name: Pruebas con DOSBox real (TASM, TLINK, ejecución y TD)
+        run: cargo test -- --include-ignored --test-threads=1
+
+      - name: Captura de la interfaz instalada
+        run: |
+          mkdir -p ~/Library/Application\ Support/rust-tasm
+          echo '{"language":"ES"}' > ~/Library/Application\ Support/rust-tasm/config.json
+          RTASM_SHOT="$PWD/dist/captura-macos.png" RTASM_SHOT_FRAMES=60 \
+            "$HOME/Applications/Rust Turbo Assembler.app/Contents/MacOS/rust-tasm" \
+            "$HOME/Applications/Rust Turbo Assembler.app/Contents/Resources/examples/HOLA.ASM" &
+          PID=$!; sleep 40; kill $PID 2>/dev/null || true
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rust-tasm-macos
+          path: |
+            dist/rust-tasm-macos.zip
+            dist/rust-tasm-macos.zip.sha256
+            dist/captura-macos.png
