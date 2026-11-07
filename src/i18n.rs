@@ -114,5 +114,24 @@ pub fn system_language() -> String {
             }
         }
     }
+    #[cfg(windows)]
+    {
+        // Windows no usa LANG: se pregunta la configuración regional ("es-MX").
+        #[link(name = "kernel32")]
+        unsafe extern "system" {
+            fn GetUserDefaultLocaleName(name: *mut u16, len: i32) -> i32;
+        }
+        let mut buf = [0u16; 85];
+        let n = unsafe { GetUserDefaultLocaleName(buf.as_mut_ptr(), buf.len() as i32) };
+        if n > 1 {
+            let v = String::from_utf16_lossy(&buf[..(n - 1) as usize]).to_uppercase();
+            if v.starts_with("ZH") {
+                return "ZH-HANT".into();
+            }
+            if v.len() >= 2 {
+                return v[..2].to_string();
+            }
+        }
+    }
     "EN".into()
 }

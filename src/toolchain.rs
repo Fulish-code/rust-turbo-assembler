@@ -471,6 +471,15 @@ Error messages:    2\n";
 
 /// Prueba de punta a punta con DOSBox real (requiere DOSBox instalado):
 /// `cargo test -- --ignored --nocapture`
+/// Carpeta BIN para las pruebas con DOSBox: la del repositorio o, con
+/// `RTASM_TEST_BIN`, la de una instalación (p. ej. una ruta con espacios).
+#[cfg(test)]
+fn test_bin() -> PathBuf {
+    std::env::var_os("RTASM_TEST_BIN")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("BIN"))
+}
+
 #[cfg(test)]
 mod dosbox_tests {
     use super::*;
@@ -478,7 +487,7 @@ mod dosbox_tests {
 
     fn run(src_name: &str, code: &str, steps: Vec<Step>) -> (Vec<String>, Vec<(Step, Outcome)>, PathBuf) {
         let dosbox = crate::dosbox::detect("").expect("DOSBox no instalado");
-        let bin = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("BIN");
+        let bin = test_bin();
         let dir = std::env::temp_dir().join(format!("rtasm-test-{}-{src_name}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
@@ -544,7 +553,7 @@ mod run_tests {
     #[ignore]
     fn exe_runs_and_td_starts() {
         let dosbox = crate::dosbox::detect("").unwrap();
-        let bin = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("BIN");
+        let bin = test_bin();
         let dir = std::env::temp_dir().join(format!("rtasm-run-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();

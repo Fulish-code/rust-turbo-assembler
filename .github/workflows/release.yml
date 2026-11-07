@@ -35,6 +35,8 @@ jobs:
           }
           if (-not (Test-Path "$([Environment]::GetFolderPath('Desktop'))\Rust Turbo Assembler.lnk")) { throw 'Falta el acceso directo' }
           "$App\dosbox" | Out-File -Append -Encoding utf8 $env:GITHUB_PATH
+          # Las pruebas usan el BIN instalado (ruta con espacios) y el DOSBox incluido.
+          "RTASM_TEST_BIN=$App\BIN" | Out-File -Append -Encoding utf8 $env:GITHUB_ENV
 
       - name: Pruebas con DOSBox real (TASM, TLINK, ejecución y TD)
         run: cargo test --release -- --include-ignored --test-threads=1

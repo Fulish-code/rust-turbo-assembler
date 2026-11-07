@@ -110,6 +110,25 @@ impl Settings {
     }
 }
 
+/// Ruta absoluta sin `..` ni enlaces. En Windows quita el prefijo `\\?\` que
+/// agrega `canonicalize` (DOSBox no lo entiende y se ve mal en los mensajes).
+pub fn canon(p: &Path) -> PathBuf {
+    let c = p.canonicalize().unwrap_or_else(|_| p.to_path_buf());
+    #[cfg(windows)]
+    {
+        let s = c.to_string_lossy();
+        if let Some(rest) = s.strip_prefix(r"\\?\UNC\") {
+            return PathBuf::from(format!(r"\\{rest}"));
+        }
+        if let Some(rest) = s.strip_prefix(r"\\?\") {
+            if rest.as_bytes().get(1) == Some(&b':') {
+                return PathBuf::from(rest);
+            }
+        }
+    }
+    c
+}
+
 /// Carpeta con TASM.EXE/TLINK.EXE/TD.EXE.
 pub fn find_bin_dir(custom: &str) -> Option<PathBuf> {
     let has_tasm = |d: &Path| d.join("TASM.EXE").is_file() || d.join("tasm.exe").is_file();
@@ -120,14 +139,14 @@ pub fn find_bin_dir(custom: &str) -> Option<PathBuf> {
         }
     }
     let cands: Vec<PathBuf> = resource_roots().into_iter().flat_map(|r| [r.join("BIN"), r.join("bin")]).collect();
-    cands.into_iter().find(|d| has_tasm(d)).map(|d| d.canonicalize().unwrap_or(d))
+    cands.into_iter().find(|d| has_tasm(d)).map(|d| canon(&d))
 }
 
 /// Carpeta `docs/` con los manuales de TASM (se busca igual que BIN).
 pub fn find_docs_dir() -> Option<PathBuf> {
     let ok = |d: &Path| d.join("Manual TASM").is_dir() || d.join("Manual-TASM(completo).pdf").is_file();
     let cands: Vec<PathBuf> = resource_roots().into_iter().map(|r| r.join("docs")).collect();
-    cands.into_iter().find(|d| ok(d)).map(|d| d.canonicalize().unwrap_or(d))
+    cands.into_iter().find(|d| ok(d)).map(|d| canon(&d))
 }
 
 /// Carpetas candidatas para recursos (BIN, docs, locales): junto al ejecutable,
@@ -135,7 +154,7 @@ pub fn find_docs_dir() -> Option<PathBuf> {
 pub fn resource_roots() -> Vec<PathBuf> {
     let mut v = Vec::new();
     if let Ok(me) = std::env::current_exe() {
-        let me = me.canonicalize().unwrap_or(me);
+        let me = canon(&me);
         if let Some(exe_dir) = me.parent() {
             v.push(exe_dir.join("../Resources"));
             let mut dir = Some(exe_dir.to_path_buf());

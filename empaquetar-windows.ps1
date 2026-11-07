@@ -44,5 +44,6 @@ if ($LASTEXITCODE -ne 0) { throw 'Inno Setup falló' }
 
 $Setup = 'dist\rust-tasm-windows-setup.exe'
 $Hash = (Get-FileHash $Setup -Algorithm SHA256).Hash.ToLower()
-"$Hash  rust-tasm-windows-setup.exe" | Out-File -Encoding ascii "$Setup.sha256"
+# Fin de línea LF para que "sha256sum -c" funcione también en Linux y macOS.
+[IO.File]::WriteAllText((Join-Path $PWD "$Setup.sha256"), "$Hash  rust-tasm-windows-setup.exe`n")
 Get-ChildItem dist

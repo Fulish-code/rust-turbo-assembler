@@ -184,6 +184,30 @@ fn local_offset_secs() -> i64 {
                 }
             }
         }
+        #[cfg(windows)]
+        {
+            // TIME_ZONE_INFORMATION: Bias (min) + nombres y fechas; DaylightBias al final.
+            #[repr(C)]
+            struct Tzi {
+                bias: i32,
+                standard_name: [u16; 32],
+                standard_date: [u16; 8],
+                standard_bias: i32,
+                daylight_name: [u16; 32],
+                daylight_date: [u16; 8],
+                daylight_bias: i32,
+            }
+            #[link(name = "kernel32")]
+            unsafe extern "system" {
+                fn GetTimeZoneInformation(tzi: *mut Tzi) -> u32;
+            }
+            let mut tzi: Tzi = unsafe { std::mem::zeroed() };
+            let r = unsafe { GetTimeZoneInformation(&mut tzi) };
+            if r != u32::MAX {
+                let bias = tzi.bias + if r == 2 { tzi.daylight_bias } else { tzi.standard_bias };
+                return -(bias as i64) * 60;
+            }
+        }
         0
     })
 }
@@ -529,7 +553,7 @@ impl State {
     }
 
     fn open_path(&mut self, p: &Path, validate: bool) -> Option<u64> {
-        let p = p.canonicalize().unwrap_or_else(|_| p.to_path_buf());
+        let p = crate::config::canon(p);
         if let Some((id, _)) = self.docs.iter().find(|(_, d)| d.path.as_ref() == Some(&p)) {
             let id = *id;
             self.focus_tab = Some(Tab::Editor(id));
@@ -616,7 +640,7 @@ impl State {
         let data = text.replace('\n', "\r\n");
         match std::fs::write(&target, data) {
             Ok(()) => {
-                let target = target.canonicalize().unwrap_or(target);
+                let target = crate::config::canon(&target);
                 let msg_key = if as_new { "IDE.SavingFileAs" } else { "IDE.SavingFile" };
                 let msg = format!("{} {}", self.t(msg_key), target.display());
                 let d = self.docs.get_mut(&id).unwrap();
