@@ -27,7 +27,10 @@ Eso es todo. El instalador:
 
 - descarga el programa ya compilado (funciona en Ubuntu 20.04+, Debian 11+, Mint, Fedora, Arch…);
 - incluye Turbo Assembler, Turbo Linker, Turbo Debugger y los manuales;
-- instala **DOSBox Staging** si no lo tienes (sin pedir contraseña);
+- instala **DOSBox Staging** si no lo tienes, sin pedir contraseña. En
+  sistemas anteriores a Ubuntu 22.04 / Debian 12 (por ejemplo Ubuntu 20.04 o
+  Debian 11) DOSBox Staging no funciona: ahí el instalador usa el DOSBox de tu
+  sistema y **sí te pide tu contraseña** una vez para instalarlo;
 - crea el acceso en el menú de aplicaciones, con su ícono, y te pregunta si
   quieres también un **ícono en el Escritorio**.
 
@@ -53,7 +56,8 @@ El instalador:
 
 - instala la app, con su ícono, en tu carpeta Aplicaciones (sin pedir contraseña);
 - incluye Turbo Assembler, Turbo Linker, Turbo Debugger y los manuales;
-- descarga **DOSBox Staging** si no lo tienes;
+- descarga **DOSBox Staging** si no lo tienes (en macOS 11 usa la versión 0.82.2,
+  la última compatible) y comprueba que arranque;
 - te pregunta si quieres un **ícono en el Escritorio** y abre el programa al terminar.
 
 Después búscalo en Launchpad como "Rust Turbo Assembler". Requiere macOS 11 o superior.
@@ -111,8 +115,9 @@ paquetes a la versión.
 | Idiomas (EN, FR, DE, PL, RU, HI, ZH-HANT) | ✔ los mismos `.lang` + **español** |
 | Argumentos personalizados de TASM/TLINK | ✔ (predeterminados `/zi` y `/v` para depurar) |
 | Reglas de nombre DOS (8 caracteres, sin espacios) | ✔ |
-| Ejemplos | ✔ 8 ejemplos comentados en español |
+| Ejemplos | ✔ 8 ejemplos comentados en español, en el modo IDEAL del manual |
 | Manual de TASM | ✔ botón **📖 Manual TASM** (completo o por capítulo) |
+| Programas del manual | ✔ botón **📝 Códigos TASM**: los programas, procedimientos y macros del manual por capítulo, probados con TASM 4.1 (se copian a `Documentos/Ejemplos_Manual` para editarlos) |
 
 No se portaron porque dependen de servidores del autor original: buscar
 actualizaciones, donaciones y estadísticas de uso. El modo de 32 bits
@@ -141,7 +146,7 @@ src/
 assets/          ícono (PNG 1024/256 px, .ico de Windows)
 windows/         script de Inno Setup del instalador de Windows
 BIN/             TASM, TLINK, TD (+ RTM, DPMI16BI, TDHELP) de Borland
-docs/            manual de TASM en PDF
+docs/            manual de TASM en PDF y sus programas (docs/Ejemplos_Manual)
 locales/         idiomas
 examples/        programas de ejemplo
 ```

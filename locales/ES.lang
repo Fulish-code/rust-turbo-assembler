@@ -529,6 +529,11 @@
 		"ManualTip": "Abrir el manual de TASM (completo o por capítulo)",
 		"ManualFull": "Manual completo",
 		"ManualFolder": "Abrir carpeta de manuales",
-		"ManualMissing": "No se encontró la carpeta docs con los manuales."
+		"ManualMissing": "No se encontró la carpeta docs con los manuales.",
+		"Examples": "Códigos TASM",
+		"ExamplesTip": "Programas del manual de TASM, por capítulo (se copian a Documentos/Ejemplos_Manual para que puedas editarlos)",
+		"ExamplesReadme": "Léeme: índice y correcciones",
+		"ExamplesFolder": "Abrir carpeta de ejemplos",
+		"ExamplesMissing": "No se encontró la carpeta docs/Ejemplos_Manual."
 	}
 }

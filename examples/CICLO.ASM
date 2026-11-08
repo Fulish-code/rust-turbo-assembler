@@ -1,21 +1,57 @@
-; CICLO.ASM - Imprime los digitos del 0 al 9 usando LOOP
-.MODEL SMALL
-.STACK 100h
+;**********************************************************
+; CICLO.ASM
+;
+; Este programa despliega los dígitos del 0 al 9 usando la
+; instrucción repetitiva loop. El pseudocódigo es:
+;
+;   CX = 10
+;   DL = '0'
+;   do
+;   {
+;      despliega DL y un espacio
+;      DL++
+;   }
+;   while(--CX > 0)
+;**********************************************************
 
-.CODE
+;****** CÓDIGO DE INICIO **********************************
+
+        ideal
+        dosseg
+        model   small
+        stack   256
+
+;****** VARIABLES DEL PROGRAMA ****************************
+
+        dataseg
+codsal  db      0
+
+;****** CÓDIGO DEL PROGRAMA *******************************
+
+        codeseg
 inicio:
-    mov cx, 10             ; numero de vueltas
-    mov dl, '0'
-otra:
-    mov ah, 02h
-    int 21h
-    push dx
-    mov dl, ' '
-    int 21h
-    pop dx
-    inc dl
-    loop otra
+        mov     ax, @data               ; Inicializa el
+        mov     ds, ax                  ; segmento de datos
 
-    mov ax, 4C00h
-    int 21h
-END inicio
+        mov     cx, 10                  ; CX = 10
+        mov     dl, '0'                 ; DL = '0'
+do:                                     ; do
+                                        ; {
+        mov     ah, 02h                 ;    Despliega DL
+        int     21h
+        push    dx                      ;    Despliega un espacio
+        mov     dl, ' '
+        int     21h
+        pop     dx
+        inc     dl                      ;    DL++
+        loop    do                      ; }
+                                        ; while(--CX > 0)
+
+salir:
+        mov     ah, 04Ch
+        mov     al, [codsal]
+        int     21h
+
+;****** CÓDIGO DE TERMINACIÓN *****************************
+
+        end     inicio

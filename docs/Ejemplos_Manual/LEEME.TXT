@@ -1,0 +1,82 @@
+EJEMPLOS DEL MANUAL DE TASM
+===========================
+
+Programas del manual "Lenguaje Ensamblador" (Manuel Domitsu Kono,
+ITSON) incluido en la carpeta docs. Están escritos en el modo IDEAL de
+Turbo Assembler, igual que en el manual (ideal, dosseg, model, stack,
+dataseg, codeseg), y todos se ensamblaron, enlazaron y ejecutaron con
+TASM 4.1 y TLINK 7.1 para comprobar sus resultados.
+
+La mayoría de los programas no despliegan nada: dejan el resultado en
+variables. Para verlo, depúralos con TD (F8) y revisa las variables
+(menú View > Variables de TD). Las variables con ? valen 0 al cargar el
+programa; puedes cambiarlas en TD o darles un valor en el código.
+
+Al enlazar, TLINK 7.1 muestra "Warning: DOSSEG directive ignored". Es
+normal: la directiva dosseg es de versiones anteriores y no afecta al
+programa.
+
+
+Capítulo 3 - Estructura de un programa en ensamblador
+   PRIMER.ASM     Estructura de un programa y principales directivas
+
+Capítulo 4 - Transferencia, aritmética y lógica
+   SUMABYWS.ASM   Suma un byte y una palabra con signo
+   SUMA2DW.ASM    Suma dos palabras dobles                    (corregido)
+   BIT.ASM        Valor del i-ésimo bit de un byte
+   ROTACION.ASM   Rotaciones de una palabra doble
+
+Capítulo 5 - Control de flujo
+   MAYOR3.ASM     Mayor de tres números con signo
+   SERIE1.ASM     Suma de 1 a nfinal con saltos              (corregido)
+   SERIE2.ASM     Suma de 1 a nfinal con loop                (corregido)
+
+Capítulo 6 - Procedimientos
+   SUM2DW_P.ASM   Suma de palabras dobles con un procedimiento
+   SWAPNIB2.ASM   Intercambia los nibles de un byte (en el manual SWAPNIBL2.ASM)
+   SERIE3.ASM     Suma de 1 a nfinal con etiquetas locales
+   REDFRAC.ASM    Reduce una fracción; variables locales en la pila (*)
+   REDFRAC2.ASM   Lo mismo con la directiva local (*)
+   MODULO.ASM     Programación modular: módulo secundario
+   PRINCIPA.ASM   Programación modular: módulo principal
+                  (TASM MODULO, TASM PRINCIPA, TLINK PRINCIPA MODULO)
+   ROTACIO2.ASM   Rotaciones con macros
+   MAYOR3_2.ASM   Macro con etiquetas locales
+   ROTA_N.INC     Macros con la directiva rept
+   ROTACIO3.ASM   Uso de la directiva include (incluye ROTA_N.INC)
+
+Capítulo 7 - Arreglos y cadenas
+   MAYORNW1.ASM   Mayor de un arreglo (direccionamiento indexado) (corregido)
+   MAYORNW2.ASM   Mayor de un arreglo (registro indirecto)        (corregido)
+   BLINEAL1.ASM   Búsqueda lineal (base indexado)
+   BLINEAL3.ASM   Búsqueda lineal, 2a. versión del procedimiento (*)
+   BLINEAL4.ASM   Búsqueda lineal, 3a. versión del procedimiento (*)
+   BLINEAL2.ASM   Búsqueda lineal con scasw y repne
+   CADENAS.ASM    astrlen, astrupr y aatoi (*)                   (corregido)
+
+Capítulo 8 - Interrupciones
+   BIOS_MAC.INC   Macros aputch y agetch (rutinas del BIOS)
+   DOS_MAC.INC    Macros aputchar y agetchar (rutinas del DOS)
+   PRUBIOS.ASM    Prueba de BIOS_MAC.INC (*)
+   PRUDOS.ASM     Prueba de DOS_MAC.INC (*)
+
+(*) El manual sólo muestra el procedimiento o las macros; se agregó un
+    programa principal en el mismo estilo para poder ensamblarlo y
+    probarlo. REDFRAC usa el procedimiento mcd, que en el manual es un
+    ejercicio.
+
+
+CORRECCIONES
+------------
+Cada corrección está marcada en el código con ";** CORREGIDO".
+
+SUMA2DW.ASM    El manual usa [word resull]; la variable se llama resul.
+               Es un error del PDF: así no ensambla.
+SERIE2.ASM     El manual salta a "endo"; la etiqueta se llama enddo.
+CADENAS.ASM    En astrlen el manual dice "popr di"; la instrucción es pop.
+SERIE1.ASM,    El manual usa "while" como etiqueta. En TASM 4.1 WHILE es
+MAYORNW1.ASM,  una directiva (no existía en la versión para la que se
+MAYORNW2.ASM   escribió el manual), así que la etiqueta se llama whi.
+PRINCIPA.ASM   El manual no declara codsal. En MODULO y PRINCIPA el
+               código de los procedimientos aparece como "..." en el
+               manual; aquí esas líneas son comentarios.

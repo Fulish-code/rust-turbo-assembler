@@ -534,7 +534,7 @@ mod dosbox_tests {
     #[test]
     #[ignore]
     fn reports_errors_with_lines() {
-        let code = ".MODEL SMALL\n.STACK 100h\n.CODE\ninicio:\n    mov ax, FOO\n    movx bx, 1\n    mov ax, 4C00h\n    int 21h\nEND inicio\n";
+        let code = "ideal\nmodel small\nstack 256\ncodeseg\ninicio: mov ax, FOO\n        movx bx, 1\n        mov ax, 04C00h\n        int 21h\n        end inicio\n";
         let (logs, steps, _) = run("MALO.ASM", code, vec![Step::Assemble, Step::Build]);
         println!("{}", logs.join("\n"));
         assert_eq!(steps, vec![(Step::Assemble, Outcome::Failed)]);

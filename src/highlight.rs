@@ -121,7 +121,7 @@ const DIRECTIVES: &[&str] = &[
     "df", "dp", "dq", "dt", "equ", "macro", "endm", "local", "include", "includelib", "org", "even",
     "align", "offset", "ptr", "byte", "word", "dword", "fword", "pword", "qword", "tbyte", "near", "far",
     "short", "seg", "dup", "public", "extrn", "extern", "global", "label", "group", "struc", "struct",
-    "union", "record", "ideal", "masm", "jumps", "nojumps", "locals", "nolocals", "uses", "arg", "small",
+    "union", "record", "ideal", "dosseg", "abs", "masm", "jumps", "nojumps", "locals", "nolocals", "uses", "arg", "small",
     "tiny", "medium", "compact", "large", "huge", "flat", "use16", "use32", "para", "page", "public",
     "common", "at", "memory", "type", "size", "length", "sizeof", "lengthof", "this", "high", "low",
     "mod", "shl", "shr", "eq", "ne", "lt", "le", "gt", "ge", "if", "ifdef", "ifndef", "else", "endif",

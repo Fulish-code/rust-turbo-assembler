@@ -529,6 +529,11 @@
 		"ManualTip": "Open the TASM manual (complete or by chapter)",
 		"ManualFull": "Complete manual",
 		"ManualFolder": "Open manuals folder",
-		"ManualMissing": "The docs folder with the manuals was not found."
+		"ManualMissing": "The docs folder with the manuals was not found.",
+		"Examples": "TASM code",
+		"ExamplesTip": "Programs from the TASM manual, by chapter (copied to Documents/Ejemplos_Manual so you can edit them)",
+		"ExamplesReadme": "Read me: index and corrections",
+		"ExamplesFolder": "Open examples folder",
+		"ExamplesMissing": "The docs/Ejemplos_Manual folder was not found."
 	}
 }

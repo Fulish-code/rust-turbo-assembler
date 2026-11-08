@@ -18,7 +18,11 @@ set -euo pipefail
 
 REPO="Fulish-code/rust-turbo-assembler"
 APPNAME="Rust Turbo Assembler"
-DOSBOX_VERSION="v0.83.0"
+# DOSBox Staging 0.83 requiere macOS 12; en macOS 11 se usa la 0.82.2 (la
+# última que funciona ahí; no puede ejecutarse oculta, así que la app abre su
+# ventana al ensamblar).
+MACOS_MAYOR="$(sw_vers -productVersion 2>/dev/null | cut -d. -f1)"
+if [ "${MACOS_MAYOR:-0}" -ge 12 ] 2>/dev/null; then DOSBOX_VERSION="v0.83.0"; else DOSBOX_VERSION="v0.82.2"; fi
 DOSBOX_URL="https://github.com/dosbox-staging/dosbox-staging/releases/download/${DOSBOX_VERSION}/dosbox-staging-macOS-${DOSBOX_VERSION}.dmg"
 APPS="$HOME/Applications"
 
@@ -48,12 +52,16 @@ trap limpiar EXIT
 
 descargar() { curl -fL --retry 3 --progress-bar -o "$2" "$1"; }
 
+# Que exista no basta: hay que ejecutarlo (p. ej. una versión que requiere un
+# macOS más nuevo existe pero no arranca).
+funciona() { [ -x "$1" ] && "$1" --version >/dev/null 2>&1; }
+
 hay_dosbox() {
     for p in "$APPS/DOSBox Staging.app/Contents/MacOS/dosbox" "/Applications/DOSBox Staging.app/Contents/MacOS/dosbox" \
-             /opt/homebrew/bin/dosbox /usr/local/bin/dosbox /opt/homebrew/bin/dosbox-x /usr/local/bin/dosbox-x; do
-        if [ -x "$p" ]; then echo "$p"; return 0; fi
+             /opt/homebrew/bin/dosbox /usr/local/bin/dosbox /opt/homebrew/bin/dosbox-x /usr/local/bin/dosbox-x \
+             "$(command -v dosbox 2>/dev/null || true)"; do
+        if [ -n "$p" ] && funciona "$p"; then echo "$p"; return 0; fi
     done
-    if command -v dosbox >/dev/null 2>&1; then command -v dosbox; return 0; fi
     return 1
 }
 
@@ -89,7 +97,7 @@ paso "Revisando DOSBox (necesario para TASM, TLINK y TD)"
 if [ -z "${RTASM_FORZAR_DOSBOX:-}" ] && D="$(hay_dosbox)"; then
     bien "Ya tienes DOSBox: $D"
 else
-    aviso "Descargando DOSBox Staging (libre y gratuito)…"
+    aviso "Descargando DOSBox Staging ${DOSBOX_VERSION#v} (libre y gratuito)…"
     if descargar "$DOSBOX_URL" "$TMP/dosbox.dmg"; then
         MNT="$TMP/mnt"
         mkdir -p "$MNT"
@@ -104,13 +112,20 @@ else
             MNT=""
         fi
     fi
-    if [ -x "$APPS/DOSBox Staging.app/Contents/MacOS/dosbox" ]; then
+    if funciona "$APPS/DOSBox Staging.app/Contents/MacOS/dosbox"; then
         bien "DOSBox Staging instalado en $APPS"
-    elif command -v brew >/dev/null 2>&1; then
-        aviso "Probando con Homebrew…"
-        if brew install dosbox-staging; then bien "DOSBox Staging instalado con Homebrew"; else aviso "No se pudo instalar DOSBox."; fi
+        if [ "$DOSBOX_VERSION" = "v0.82.2" ]; then
+            aviso "En macOS 11 la ventana de DOSBox se abrirá un momento cada vez que ensambles."
+        fi
     else
-        aviso "No pude instalar DOSBox. Descárgalo de https://www.dosbox-staging.org y arrástralo a Aplicaciones."
+        [ -e "$APPS/DOSBox Staging.app" ] && aviso "El DOSBox descargado no arranca en este Mac."
+        rm -rf "$APPS/DOSBox Staging.app"
+        if command -v brew >/dev/null 2>&1; then
+            aviso "Probando con Homebrew…"
+            brew install dosbox-staging || true
+        fi
+        if D="$(hay_dosbox)"; then bien "DOSBox instalado: $D"
+        else aviso "No pude instalar DOSBox. El programa abre, pero para ensamblar necesitas DOSBox: descárgalo de https://www.dosbox-staging.org y arrástralo a Aplicaciones."; fi
     fi
 fi
 

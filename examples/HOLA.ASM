@@ -1,20 +1,39 @@
-; HOLA.ASM - Hola mundo en DOS (16 bits)
-; Ensamblar: TASM /zi HOLA.ASM   Enlazar: TLINK /v HOLA.OBJ
-.MODEL SMALL
-.STACK 100h
+;**********************************************************
+; HOLA.ASM
+;
+; Este programa despliega un saludo en la pantalla usando
+; la función 09h de la interrupción 21h del DOS.
+;**********************************************************
 
-.DATA
-    mensaje DB 'Hola, mundo desde Turbo Assembler!', 13, 10, '$'
+;****** CÓDIGO DE INICIO **********************************
 
-.CODE
+        ideal
+        dosseg
+        model   small
+        stack   256
+
+;****** VARIABLES DEL PROGRAMA ****************************
+
+        dataseg
+codsal  db      0
+mensaje db      'Hola, mundo desde Turbo Assembler!', 13, 10, '$'
+
+;****** CÓDIGO DEL PROGRAMA *******************************
+
+        codeseg
 inicio:
-    mov ax, @data          ; cargar el segmento de datos
-    mov ds, ax
+        mov     ax, @data               ; Inicializa el
+        mov     ds, ax                  ; segmento de datos
 
-    mov ah, 09h            ; DOS: imprimir cadena terminada en '$'
-    lea dx, mensaje
-    int 21h
+        mov     ah, 09h                 ; Despliega la cadena
+        mov     dx, offset mensaje      ; terminada en '$'
+        int     21h
 
-    mov ax, 4C00h          ; DOS: terminar el programa (codigo 0)
-    int 21h
-END inicio
+salir:
+        mov     ah, 04Ch
+        mov     al, [codsal]
+        int     21h
+
+;****** CÓDIGO DE TERMINACIÓN *****************************
+
+        end     inicio

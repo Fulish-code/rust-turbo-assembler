@@ -34,7 +34,38 @@ const EXAMPLES: &[(&str, &str)] = &[
     ("GRAFICO.ASM", include_str!("../examples/GRAFICO.ASM")),
 ];
 
-const NEW_FILE_TEMPLATE: &str = ".MODEL SMALL\n.STACK 100h\n\n.DATA\n\n.CODE\ninicio:\n\tmov ax, @data\n\tmov ds, ax\n\n\t\n\n\tmov ax, 4C00h\n\tint 21h\nEND inicio\n";
+/// Plantilla de archivo nuevo: modo IDEAL, igual que el manual de TASM.
+const NEW_FILE_TEMPLATE: &str = "\
+;****** CÓDIGO DE INICIO **********************************
+
+        ideal
+        dosseg
+        model   small
+        stack   256
+
+;****** VARIABLES DEL PROGRAMA ****************************
+
+        dataseg
+codsal  db      0
+
+;****** CÓDIGO DEL PROGRAMA *******************************
+
+        codeseg
+inicio:
+        mov     ax, @data               ; Inicializa el
+        mov     ds, ax                  ; segmento de datos
+
+
+
+salir:
+        mov     ah, 04Ch
+        mov     al, [codsal]
+        int     21h
+
+;****** CÓDIGO DE TERMINACIÓN *****************************
+
+        end     inicio
+";
 
 #[derive(Clone, Copy, PartialEq, Eq, Debug)]
 pub enum Tab {
@@ -1971,6 +2002,10 @@ impl App {
             ui.menu_button(manual_label, |ui| manual_menu(ui, &mut self.s))
                 .response
                 .on_hover_text(self.s.t("Port.ManualTip"));
+            let examples_label = RichText::new(format!("📝 {}", self.s.t("Port.Examples"))).strong();
+            ui.menu_button(examples_label, |ui| manual_examples_menu(ui, &mut self.s))
+                .response
+                .on_hover_text(self.s.t("Port.ExamplesTip"));
             ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                 if tb(ui, "⚙", self.s.t("IDE.MenuBarPreferenceText"), true) {
                     self.s.prefs = Some(self.s.settings.clone());
@@ -2409,6 +2444,147 @@ const MANUAL_TOPICS: &[(&str, &str)] = &[
     ("Tema07", "Arreglos y cadenas"),
     ("Tema08", "Interrupciones"),
 ];
+
+/// Programas del manual en `docs/Ejemplos_Manual`, por capítulo
+/// (índice en `MANUAL_TOPICS`).
+const MANUAL_EXAMPLES: &[(usize, &[&str])] = &[
+    (2, &["PRIMER.ASM"]),
+    (3, &["SUMABYWS.ASM", "SUMA2DW.ASM", "BIT.ASM", "ROTACION.ASM"]),
+    (4, &["MAYOR3.ASM", "SERIE1.ASM", "SERIE2.ASM"]),
+    (
+        5,
+        &[
+            "SUM2DW_P.ASM",
+            "SWAPNIB2.ASM",
+            "SERIE3.ASM",
+            "REDFRAC.ASM",
+            "REDFRAC2.ASM",
+            "MODULO.ASM",
+            "PRINCIPA.ASM",
+            "ROTACIO2.ASM",
+            "MAYOR3_2.ASM",
+            "ROTA_N.INC",
+            "ROTACIO3.ASM",
+        ],
+    ),
+    (6, &["MAYORNW1.ASM", "MAYORNW2.ASM", "BLINEAL1.ASM", "BLINEAL3.ASM", "BLINEAL4.ASM", "BLINEAL2.ASM", "CADENAS.ASM"]),
+    (7, &["BIOS_MAC.INC", "DOS_MAC.INC", "PRUBIOS.ASM", "PRUDOS.ASM"]),
+];
+const MANUAL_EXAMPLES_README: &str = "LEEME.TXT";
+
+/// Copia los ejemplos del manual a `Documentos/Ejemplos_Manual`, donde se
+/// pueden editar y donde TASM/TLINK pueden escribir los .OBJ y .EXE (la
+/// carpeta de instalación puede no admitir escritura, p. ej. dentro del
+/// .app en macOS). Sólo copia los archivos que faltan: nunca sobrescribe
+/// los que el usuario ya modificó.
+fn user_manual_examples(src: &Path) -> std::io::Result<PathBuf> {
+    let base = dirs::document_dir()
+        .or_else(dirs::home_dir)
+        .ok_or_else(|| std::io::Error::other("no home directory"))?;
+    let dst = base.join("Ejemplos_Manual");
+    copy_missing_files(src, &dst)?;
+    Ok(dst)
+}
+
+/// Copia a `dst` los archivos de `src` que todavía no existen en `dst`.
+fn copy_missing_files(src: &Path, dst: &Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(dst)?;
+    for entry in std::fs::read_dir(src)? {
+        let entry = entry?;
+        let to = dst.join(entry.file_name());
+        if entry.file_type()?.is_file() && !to.exists() {
+            std::fs::copy(entry.path(), &to)?;
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod manual_examples_tests {
+    use super::*;
+
+    #[test]
+    fn every_listed_example_exists() {
+        let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join("docs/Ejemplos_Manual");
+        for (chapter, files) in MANUAL_EXAMPLES {
+            assert!(*chapter < MANUAL_TOPICS.len());
+            for f in *files {
+                assert!(dir.join(f).is_file(), "falta {f}");
+            }
+        }
+        assert!(dir.join(MANUAL_EXAMPLES_README).is_file());
+    }
+
+    #[test]
+    fn copy_keeps_user_changes() {
+        let tmp = std::env::temp_dir().join(format!("rtasm-ej-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&tmp);
+        let (src, dst) = (tmp.join("src"), tmp.join("dst"));
+        std::fs::create_dir_all(&src).unwrap();
+        std::fs::write(src.join("A.ASM"), "original").unwrap();
+        std::fs::write(src.join("B.ASM"), "original").unwrap();
+        std::fs::create_dir_all(&dst).unwrap();
+        std::fs::write(dst.join("A.ASM"), "editado").unwrap();
+        copy_missing_files(&src, &dst).unwrap();
+        assert_eq!(std::fs::read_to_string(dst.join("A.ASM")).unwrap(), "editado");
+        assert_eq!(std::fs::read_to_string(dst.join("B.ASM")).unwrap(), "original");
+        let _ = std::fs::remove_dir_all(&tmp);
+    }
+}
+
+/// Contenido del menú "Códigos TASM" (barra de herramientas): los programas
+/// del manual por capítulo, el LEEME y la carpeta.
+fn manual_examples_menu(ui: &mut egui::Ui, s: &mut State) {
+    let Some(src) = config::find_docs_dir().map(|d| d.join("Ejemplos_Manual")).filter(|d| d.is_dir()) else {
+        ui.label(RichText::new(s.t("Port.ExamplesMissing")).weak());
+        return;
+    };
+    enum Pick {
+        File(&'static str),
+        Readme,
+        Folder,
+    }
+    let mut pick = None;
+    for (chapter, files) in MANUAL_EXAMPLES {
+        let (_, title) = MANUAL_TOPICS[*chapter];
+        ui.menu_button(format!("{}. {title}", chapter + 1), |ui| {
+            for f in *files {
+                if ui.button(*f).clicked() {
+                    pick = Some(Pick::File(f));
+                    ui.close();
+                }
+            }
+        });
+    }
+    ui.separator();
+    if ui.button(format!("📄 {}", s.t("Port.ExamplesReadme"))).clicked() {
+        pick = Some(Pick::Readme);
+        ui.close();
+    }
+    if ui.button(format!("🗁 {}", s.t("Port.ExamplesFolder"))).clicked() {
+        pick = Some(Pick::Folder);
+        ui.close();
+    }
+    let Some(pick) = pick else { return };
+    let dir = match user_manual_examples(&src) {
+        Ok(d) => d,
+        Err(e) => {
+            s.message = Some((s.t("IDE.OpenError"), format!("{}\n{e}", src.display())));
+            return;
+        }
+    };
+    match pick {
+        Pick::File(f) => {
+            s.open_path(&dir.join(f), true);
+        }
+        Pick::Readme => {
+            let _ = open::that_detached(dir.join(MANUAL_EXAMPLES_README));
+        }
+        Pick::Folder => {
+            let _ = open::that_detached(&dir);
+        }
+    }
+}
 
 /// Contenido del menú "Manual TASM" (barra de herramientas y menú Ayuda).
 fn manual_menu(ui: &mut egui::Ui, s: &mut State) {
