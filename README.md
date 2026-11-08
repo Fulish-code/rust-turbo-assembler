@@ -156,7 +156,4 @@ Assembler original.
 
 Desarrollado por **Fulish-code**. Herramientas utilizadas: Rust, egui, DOSBox Staging e Inno Setup.
 
-**Uso de inteligencia artificial:** este proyecto se desarrolló con ayuda de
-[Claude](https://claude.com) (Anthropic) como asistente de programación: escritura y
-revisión de código, scripts de instalación (Windows, Linux y macOS) y documentación.
-Las decisiones de diseño, las pruebas y la publicación son del autor.
+[Claude](https://claude.com) (Anthropic) se usó solo como herramienta de apoyo durante el desarrollo.
