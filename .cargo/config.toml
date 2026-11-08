@@ -1,0 +1,4 @@
+# Windows: el runtime de Visual C++ va dentro del .exe, así no hace falta
+# instalar "Microsoft Visual C++ Redistributable" (VCRUNTIME140.dll).
+[target.x86_64-pc-windows-msvc]
+rustflags = ["-C", "target-feature=+crt-static"]

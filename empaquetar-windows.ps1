@@ -12,6 +12,12 @@ cargo build --release
 if ($LASTEXITCODE -ne 0) { throw 'La compilación falló' }
 $Target = if ($env:CARGO_TARGET_DIR) { $env:CARGO_TARGET_DIR } else { 'target' }
 
+# Debe funcionar sin "Visual C++ Redistributable" (ver .cargo/config.toml).
+$Bytes = [IO.File]::ReadAllBytes((Resolve-Path "$Target\release\rust-tasm.exe"))
+if ([Text.Encoding]::ASCII.GetString($Bytes) -match '(?i)vcruntime140|msvcp140') {
+    throw 'rust-tasm.exe depende de VCRUNTIME140.dll; falta el enlace estático (crt-static)'
+}
+
 if (Test-Path dist) { Remove-Item -Recurse -Force dist }
 $App = 'dist\rust-tasm'
 New-Item -ItemType Directory -Force $App | Out-Null
