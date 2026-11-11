@@ -8,8 +8,10 @@ mod dosbox;
 mod editor;
 mod highlight;
 mod i18n;
+mod stage;
 mod theme;
 mod toolchain;
+mod update;
 
 use eframe::egui;
 

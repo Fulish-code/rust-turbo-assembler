@@ -15,6 +15,28 @@ Igual que el original, ejecuta las herramientas reales de Borland de 16 bits
 el ensamblado, el enlazado y la depuración con TD funcionan exactamente como en
 Windows.
 
+## Cómo funciona
+
+Escribe tu programa en el editor (con colores para la sintaxis de TASM) y usa los
+botones de la barra: **Ensamblar** (TASM), **Construir** (TLINK), **▶ Ejecutar** y
+**TD** (Turbo Debugger). La ventana *Salida* muestra los mensajes de las herramientas;
+un clic en un error te lleva a su línea.
+
+![El editor con el programa «Hola mundo» recién construido](capturas/editor.png)
+
+Al **ejecutar**, el programa corre en una ventana de DOSBox:
+
+![El programa despliega «Hola mundo»](capturas/hola-mundo.png)
+
+Con **TD** se abre el Turbo Debugger real con tu código fuente: F8 avanza una
+instrucción, F7 entra a los procedimientos, Alt+F5 muestra la pantalla del programa y
+*View › Variables* muestra las variables.
+
+![Turbo Debugger depurando HOLA.ASM, a punto de ejecutar int 21h](capturas/td.png)
+
+El programa «Hola mundo» está en **📝 Códigos TASM › Hola mundo**, junto con los
+programas del manual por capítulo.
+
 ## Instalar (Linux)
 
 Abre una **Terminal**, pega esta línea y presiona Enter:
@@ -114,9 +136,12 @@ paquetes a la versión.
 | Temas Azul / Oscuro / Claro + editor claro/oscuro | ✔ |
 | Idiomas (EN, FR, DE, PL, RU, HI, ZH-HANT) | ✔ los mismos `.lang` + **español** |
 | Argumentos personalizados de TASM/TLINK | ✔ (predeterminados `/zi` y `/v` para depurar) |
-| Reglas de nombre DOS (8 caracteres, sin espacios) | ✔ |
+| Reglas de nombre DOS (8 caracteres, sin espacios) | ✔ y además: los nombres largos o con acentos se convierten solos (`programa1.asm` → `PROGRAMA.ASM` para DOS; el `.EXE` queda como `PROGRAMA1.EXE`) |
+| Acentos en TD | ✔ los comentarios en UTF-8 se pasan a la página de DOS (437), así TD muestra «ó» y no «├│» |
+| Programación modular | ✔ un programa con `extrn` se enlaza solo con los módulos de su carpeta que lo exportan con `public` (p. ej. `TLINK PRINCIPA MODULO`); un módulo secundario o un `.INC` explica desde qué programa se usa |
 | Ejemplos | ✔ 8 ejemplos comentados en español, en el modo IDEAL del manual |
 | Manual de TASM | ✔ botón **📖 Manual TASM** (completo o por capítulo) |
+| Buscar actualizaciones | ✔ botón **🔄 Actualizar**: consulta la última Release de GitHub y, si hay una nueva, la instala con el mismo instalador (Linux/macOS) o abre el `setup.exe` (Windows) |
 | Programas del manual | ✔ botón **📝 Códigos TASM**: los programas, procedimientos y macros del manual por capítulo, probados con TASM 4.1 (se copian a `Documentos/Ejemplos_Manual` para editarlos) |
 
 No se portaron porque dependen de servidores del autor original: buscar
@@ -137,11 +162,13 @@ src/
   app.rs         interfaz: menús, barra, pestañas, diálogos, flujo de acciones
   editor.rs      editor de código (números de línea, marcas, operaciones)
   highlight.rs   resaltado de sintaxis TASM
-  toolchain.rs   TASM → TLINK → ejecutar → TD; lectura de errores
-  dosbox.rs      detección y ejecución de DOSBox (C: BIN, D: tu carpeta, E: intercambio)
+  toolchain.rs   TASM → TLINK → ejecutar → TD; lectura de errores; módulos e .INC
+  stage.rs       copia de trabajo para DOS: nombres 8.3 y acentos en la página 437
+  dosbox.rs      detección y ejecución de DOSBox (C: BIN, D: copia de trabajo, E: intercambio)
   config.rs      preferencias y sesión (~/.config/rust-tasm)
   i18n.rs        idiomas (.lang del original)
   theme.rs       temas Azul/Oscuro/Claro
+  update.rs      botón Actualizar (última Release de GitHub + instalador)
   devshot.rs     capturas de pantalla para pruebas (RTASM_SHOT=archivo.png)
 assets/          ícono (PNG 1024/256 px, .ico de Windows)
 windows/         script de Inno Setup del instalador de Windows
@@ -149,6 +176,7 @@ BIN/             TASM, TLINK, TD (+ RTM, DPMI16BI, TDHELP) de Borland
 docs/            manual de TASM en PDF y sus programas (docs/Ejemplos_Manual)
 locales/         idiomas
 examples/        programas de ejemplo
+capturas/        imágenes de este README
 ```
 
 ## Licencia

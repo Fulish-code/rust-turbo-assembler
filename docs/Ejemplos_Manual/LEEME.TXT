@@ -17,6 +17,9 @@ normal: la directiva dosseg es de versiones anteriores y no afecta al
 programa.
 
 
+Para empezar
+   HOLA.ASM       Hola mundo: despliega un saludo (función 09h del DOS)
+
 Capítulo 3 - Estructura de un programa en ensamblador
    PRIMER.ASM     Estructura de un programa y principales directivas
 
@@ -39,7 +42,8 @@ Capítulo 6 - Procedimientos
    REDFRAC2.ASM   Lo mismo con la directiva local (*)
    MODULO.ASM     Programación modular: módulo secundario
    PRINCIPA.ASM   Programación modular: módulo principal
-                  (TASM MODULO, TASM PRINCIPA, TLINK PRINCIPA MODULO)
+                  (TASM MODULO, TASM PRINCIPA, TLINK PRINCIPA MODULO;
+                  el IDE lo hace solo al construir o depurar PRINCIPA)
    ROTACIO2.ASM   Rotaciones con macros
    MAYOR3_2.ASM   Macro con etiquetas locales
    ROTA_N.INC     Macros con la directiva rept

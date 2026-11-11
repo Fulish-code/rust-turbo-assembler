@@ -94,7 +94,7 @@ fn extra_locations() -> Vec<PathBuf> {
 
 /// En Windows DOSBox es un programa de consola: sin esto, cada ensamblado
 /// abriría una ventana negra además de la de DOSBox.
-fn no_console(cmd: &mut Command) -> &mut Command {
+pub fn no_console(cmd: &mut Command) -> &mut Command {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -204,10 +204,12 @@ impl CancelHandle {
 
 static JOB_COUNTER: AtomicU64 = AtomicU64::new(0);
 
+/// Caracteres 0x80..=0xFF de la página de códigos 437.
+pub const CP437_HIGH: &str = "ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■\u{a0}";
+
 /// Decodifica la salida de DOS (página de códigos 437) a texto.
 pub fn decode_cp437(bytes: &[u8]) -> String {
-    const HI: &str = "ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥₧ƒáíóúñÑªº¿⌐¬½¼¡«»░▒▓│┤╡╢╖╕╣║╗╝╜╛┐└┴┬├─┼╞╟╚╔╩╦╠═╬╧╨╤╥╙╘╒╓╫╪┘┌█▄▌▐▀αßΓπΣσµτΦΘΩδ∞φε∩≡±≥≤⌠⌡÷≈°∙·√ⁿ²■\u{a0}";
-    let hi: Vec<char> = HI.chars().collect();
+    let hi: Vec<char> = CP437_HIGH.chars().collect();
     let mut s = String::with_capacity(bytes.len());
     for &b in bytes {
         match b {
@@ -220,7 +222,7 @@ pub fn decode_cp437(bytes: &[u8]) -> String {
 }
 
 /// Texto Unicode → bytes DOS seguros para un .BAT (los acentos se simplifican).
-fn to_dos_ascii(s: &str) -> String {
+pub fn to_dos_ascii(s: &str) -> String {
     s.chars()
         .map(|c| match c {
             'á' | 'à' | 'ä' | 'â' => 'a',

@@ -8,6 +8,7 @@ use crate::highlight::Palette;
 use crate::i18n::I18n;
 use crate::theme;
 use crate::toolchain::{self, Event, LogKind, Step};
+use crate::update;
 use eframe::egui::{
     self, Align, Color32, Key, KeyboardShortcut, Layout, Modifiers, RichText, TextStyle, Vec2, ViewportCommand,
 };
@@ -108,6 +109,8 @@ enum Flow {
     SaveAllAndQuit,
     RemoveRecent(PathBuf),
     ClearRecent,
+    /// Instalar la versión nueva encontrada por «Actualizar».
+    InstallUpdate(update::Release),
 }
 
 struct Confirm {
@@ -172,6 +175,11 @@ pub struct State {
     prefs_tab: usize,
     about: bool,
     help: bool,
+    /// Búsqueda/instalación de actualizaciones en curso.
+    update: Option<std::sync::mpsc::Receiver<update::Msg>>,
+    pending_update: Option<update::Release>,
+    /// Sólo para pruebas (RTASM_SHOT_UI=update): instalar sin preguntar.
+    auto_update: bool,
     goto: Option<String>,
     properties: Option<u64>,
     status: String,
@@ -306,6 +314,9 @@ impl App {
             prefs: None,
             prefs_tab: 0,
             about: false,
+            update: None,
+            pending_update: None,
+            auto_update: false,
             help: false,
             goto: None,
             properties: None,
@@ -391,6 +402,17 @@ impl App {
                 "about" => app.s.about = true,
                 "find" => { app.s.find.open = true; app.s.find.replace = true; app.s.find.needle = "mov".into(); }
                 "nodosbox" => app.s.message = Some((app.s.t("Port.DosboxMissingTitle"), app.s.t("Port.DosboxMissingHelp"))),
+                // Ensambla y enlaza el archivo abierto (capturas del README).
+                "build" => {
+                    if let Some(&id) = cli_ids.first() {
+                        app.s.action(Action::AssembleBuild, Some(id));
+                    }
+                }
+                // Pulsa «Actualizar» y acepta la instalación (prueba del actualizador).
+                "update" => {
+                    app.s.auto_update = true;
+                    app.s.check_update();
+                }
                 _ => {}
             }
         }
@@ -771,6 +793,34 @@ impl State {
             });
             return;
         }
+        // Archivos que no son un programa por sí solos: explicar en vez de
+        // dejar que TASM/TLINK fallen con un mensaje críptico.
+        if let Some(p) = doc.path.clone() {
+            let file = p.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+            let list = |v: Vec<String>, none: String| if v.is_empty() { none } else { v.join(", ") };
+            let notice = match toolchain::source_kind(&p, &doc.text) {
+                toolchain::SourceKind::Include => Some((
+                    self.t("Port.IncludeTitle"),
+                    self.t("Port.IncludeHelp")
+                        .replace("{file}", &file)
+                        .replace("{users}", &list(toolchain::programs_including(&p), self.t("Port.NoneFound"))),
+                )),
+                toolchain::SourceKind::Module if action != Action::Assemble => Some((
+                    self.t("Port.ModuleTitle"),
+                    self.t("Port.ModuleHelp")
+                        .replace("{file}", &file)
+                        .replace("{users}", &list(toolchain::programs_using_module(&p), self.t("Port.NoneFound"))),
+                )),
+                _ => None,
+            };
+            if let Some((title, text)) = notice {
+                self.log(LogKind::Warning, text.replace('\n', " "));
+                self.log(LogKind::Warning, self.t(skipped_key));
+                self.message = Some((title, text));
+                return;
+            }
+        }
+        let Some(doc) = self.docs.get(&id) else { return };
         let assembled = self.doc_assembled(doc);
         let built = self.doc_built(doc);
         let steps: Vec<Step> = match action {
@@ -919,6 +969,91 @@ impl State {
         self.task = Some(TaskState { rx, cancel, label: cmd, started: Instant::now(), terminal: true });
     }
 
+    /// Botón «Actualizar»: busca la última versión en GitHub (en otro hilo).
+    fn check_update(&mut self) {
+        if self.update.is_some() {
+            return;
+        }
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let _ = tx.send(update::Msg::Checked(update::check(VERSION)));
+        });
+        self.update = Some(rx);
+        self.status = self.t("Port.UpdateChecking");
+    }
+
+    fn install_update(&mut self, rel: update::Release) {
+        let kind = update::install_kind();
+        if kind == update::InstallKind::Manual {
+            let _ = open::that_detached(&rel.page);
+            return;
+        }
+        let (tx, rx) = std::sync::mpsc::channel();
+        let r = rel.clone();
+        std::thread::spawn(move || {
+            let _ = tx.send(update::Msg::Installed(update::install(kind, &r).map(|_| ())));
+        });
+        self.update = Some(rx);
+        self.pending_update = Some(rel);
+        let text = self.t("Port.UpdateInstalling");
+        self.status = text.clone();
+        self.log(LogKind::Info, text);
+    }
+
+    fn poll_update(&mut self, ctx: &egui::Context) {
+        let Some(rx) = &self.update else { return };
+        let msg = match rx.try_recv() {
+            Ok(m) => m,
+            Err(std::sync::mpsc::TryRecvError::Empty) => {
+                ctx.request_repaint_after(std::time::Duration::from_millis(200));
+                return;
+            }
+            Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                self.update = None;
+                return;
+            }
+        };
+        self.update = None;
+        self.status = self.t("Port.Ready");
+        let title = self.t("Port.Update");
+        match msg {
+            update::Msg::Checked(Ok(None)) => {
+                let text = self.t("Port.UpdateLatest").replace("{ver}", VERSION);
+                self.log(LogKind::Success, text.clone());
+                self.message = Some((title, text));
+            }
+            update::Msg::Checked(Ok(Some(rel))) => {
+                let manual = update::install_kind() == update::InstallKind::Manual;
+                let key = if manual { "Port.UpdateAvailableManual" } else { "Port.UpdateAvailable" };
+                let text = self.t(key).replace("{new}", &rel.tag).replace("{cur}", VERSION);
+                self.log(LogKind::Info, text.replace('\n', " "));
+                if self.auto_update {
+                    self.install_update(rel);
+                    return;
+                }
+                self.confirm_push(Confirm {
+                    title: self.t("Port.UpdateAvailableTitle"),
+                    message: text,
+                    yes: Flow::InstallUpdate(rel),
+                    no: Flow::None,
+                    cancel: false,
+                });
+            }
+            update::Msg::Checked(Err(e)) | update::Msg::Installed(Err(e)) => {
+                let text = self.t("Port.UpdateError").replace("{err}", &e);
+                self.log(LogKind::Error, text.replace('\n', " "));
+                self.message = Some((title, text));
+            }
+            update::Msg::Installed(Ok(())) => {
+                let tag = self.pending_update.take().map(|r| r.tag).unwrap_or_default();
+                let key = if update::install_kind() == update::InstallKind::WindowsSetup { "Port.UpdateWindows" } else { "Port.UpdateDone" };
+                let text = self.t(key).replace("{new}", &tag);
+                self.log(LogKind::Success, text.replace('\n', " "));
+                self.message = Some((title, text));
+            }
+        }
+    }
+
     fn poll_task(&mut self, ctx: &egui::Context) {
         let Some(task) = &self.task else { return };
         let mut events = Vec::new();
@@ -1014,6 +1149,7 @@ impl State {
             }
             Flow::RemoveRecent(p) => self.settings.recent_files.retain(|x| *x != p),
             Flow::ClearRecent => self.settings.recent_files.clear(),
+            Flow::InstallUpdate(rel) => self.install_update(rel),
         }
     }
 
@@ -2010,6 +2146,25 @@ impl App {
                 if tb(ui, "⚙", self.s.t("IDE.MenuBarPreferenceText"), true) {
                     self.s.prefs = Some(self.s.settings.clone());
                 }
+                let github = ui
+                    .add(egui::Button::new(RichText::new("🌐 GitHub").strong()).min_size(Vec2::new(0.0, 26.0)))
+                    .on_hover_text(format!("{}\n{}", self.s.t("Port.GithubTip"), update::PROFILE_URL));
+                if github.clicked() {
+                    let _ = open::that_detached(update::PROFILE_URL);
+                }
+                let checking = self.s.update.is_some();
+                if checking {
+                    ui.add(egui::Spinner::new());
+                }
+                let upd = ui
+                    .add_enabled(
+                        !checking,
+                        egui::Button::new(RichText::new(format!("🔄 {}", self.s.t("Port.Update"))).strong()).min_size(Vec2::new(0.0, 26.0)),
+                    )
+                    .on_hover_text(format!("{} ({APP_NAME} {VERSION})", self.s.t("Port.UpdateTip")));
+                if upd.clicked() {
+                    self.s.check_update();
+                }
                 ui.label(RichText::new("TASM 4.1 · 16-bit").color(c.dim).small());
             });
         });
@@ -2447,6 +2602,8 @@ const MANUAL_TOPICS: &[(&str, &str)] = &[
 
 /// Programas del manual en `docs/Ejemplos_Manual`, por capítulo
 /// (índice en `MANUAL_TOPICS`).
+/// Primer programa, arriba de los capítulos en «Códigos TASM».
+const MANUAL_HELLO: &str = "HOLA.ASM";
 const MANUAL_EXAMPLES: &[(usize, &[&str])] = &[
     (2, &["PRIMER.ASM"]),
     (3, &["SUMABYWS.ASM", "SUMA2DW.ASM", "BIT.ASM", "ROTACION.ASM"]),
@@ -2513,6 +2670,7 @@ mod manual_examples_tests {
             }
         }
         assert!(dir.join(MANUAL_EXAMPLES_README).is_file());
+        assert!(dir.join(MANUAL_HELLO).is_file());
     }
 
     #[test]
@@ -2545,6 +2703,11 @@ fn manual_examples_menu(ui: &mut egui::Ui, s: &mut State) {
         Folder,
     }
     let mut pick = None;
+    if ui.button(RichText::new(format!("Hola mundo ({MANUAL_HELLO})")).strong()).clicked() {
+        pick = Some(Pick::File(MANUAL_HELLO));
+        ui.close();
+    }
+    ui.separator();
     for (chapter, files) in MANUAL_EXAMPLES {
         let (_, title) = MANUAL_TOPICS[*chapter];
         ui.menu_button(format!("{}. {title}", chapter + 1), |ui| {
@@ -2630,6 +2793,7 @@ impl eframe::App for App {
             self.s.theme_applied = Some(self.s.settings.ide_theme);
         }
         self.s.poll_task(&ctx);
+        self.s.poll_update(&ctx);
         self.shortcuts(&ctx);
         if ctx.input_mut(|i| i.consume_shortcut(&KeyboardShortcut::new(Modifiers::COMMAND, Key::Q))) {
             ctx.send_viewport_cmd(ViewportCommand::Close);
@@ -2723,7 +2887,8 @@ impl eframe::App for App {
             None => APP_NAME.to_string(),
         };
         ctx.send_viewport_cmd(ViewportCommand::Title(title));
-        self.devshot.tick(&ctx);
+        let busy = self.s.task.is_some() || self.s.update.is_some();
+        self.devshot.tick(&ctx, busy);
     }
 
     fn on_exit(&mut self, _gl: Option<&eframe::glow::Context>) {

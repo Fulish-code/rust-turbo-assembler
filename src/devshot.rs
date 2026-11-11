@@ -22,9 +22,13 @@ impl DevShot {
         self.path.is_some()
     }
 
-    pub fn tick(&mut self, ctx: &egui::Context) {
+    /// `busy`: hay una tarea en curso; la captura espera a que termine.
+    pub fn tick(&mut self, ctx: &egui::Context, busy: bool) {
         let Some(path) = self.path.clone() else { return };
         ctx.request_repaint();
+        if busy {
+            return;
+        }
         if !self.requested {
             if self.frames == 0 {
                 ctx.send_viewport_cmd(egui::ViewportCommand::Screenshot(Default::default()));
